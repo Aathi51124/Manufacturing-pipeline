@@ -350,8 +350,14 @@
 											"referenceName": "ds_bronze_csv_dynamic",
 											"type": "DatasetReference",
 											"parameters": {
-												"container_name": "@item().BronzeContainer",
-												"folder_path": "@item().BronzeFolderPath"
+												"container_name": {
+													"value": "@item().BronzeContainer",
+													"type": "Expression"
+												},
+												"folder_path": {
+													"value": "@concat(item().BronzeFolderPath, formatDateTime(utcNow(), 'yyyy/MM/dd'))",
+													"type": "Expression"
+												}
 											}
 										}
 									]
