@@ -1,0 +1,9 @@
+{
+	"name": "adf-manufacturing-prod",
+	"location": "southeastasia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "b7efcae7-54c4-48e7-a4e5-d046fe004f73",
+		"tenantId": "9041c5d8-72fa-4281-b14e-ef8b460010cf"
+	}
+}
