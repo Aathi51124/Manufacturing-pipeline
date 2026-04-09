@@ -1,0 +1,10 @@
+{
+	"name": "ls_adls_manufacturing",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://adlsmanufacturingprod.dfs.core.windows.net/"
+		}
+	}
+}
