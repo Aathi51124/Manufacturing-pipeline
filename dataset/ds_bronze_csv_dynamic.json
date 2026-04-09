@@ -1,5 +1,5 @@
 {
-	"name": "container_name",
+	"name": "ds_bronze_csv_dynamic",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "ls_adls_manufacturing",
