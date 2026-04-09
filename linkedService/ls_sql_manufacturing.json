@@ -1,0 +1,23 @@
+{
+	"name": "ls_sql_manufacturing",
+	"properties": {
+		"annotations": [],
+		"type": "AzureSqlDW",
+		"typeProperties": {
+			"server": "syn-manufacturing-prod.sql.azuresynapse.net",
+			"database": "db_manufacturing_dw",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "roott",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_key_vault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sql-connection-string"
+			}
+		}
+	}
+}
