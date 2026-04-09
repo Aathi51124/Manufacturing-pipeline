@@ -1,0 +1,30 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "adf-manufacturing-prod"
+		},
+		"ls_adls_manufacturing_properties_typeProperties_url": {
+			"value": "https://adlsmanufacturingprod.dfs.core.windows.net/"
+		},
+		"ls_key_vault_properties_typeProperties_baseUrl": {
+			"value": "https://kv-manufacturing-prodd.vault.azure.net/"
+		},
+		"ls_sql_manufacturing_properties_typeProperties_server": {
+			"value": "syn-manufacturing-prod.sql.azuresynapse.net"
+		},
+		"ls_sql_manufacturing_properties_typeProperties_database": {
+			"value": "db_manufacturing_dw"
+		},
+		"ls_sql_manufacturing_properties_typeProperties_userName": {
+			"value": "roott"
+		},
+		"containerUri": {
+			"value": ""
+		},
+		"containerSasToken": {
+			"value": ""
+		}
+	}
+}
