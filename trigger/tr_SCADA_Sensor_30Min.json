@@ -19,7 +19,7 @@
 			"recurrence": {
 				"frequency": "Minute",
 				"interval": 30,
-				"startTime": "2026-04-09T10:10:00",
+				"startTime": "2026-04-09T10:25:00",
 				"timeZone": "India Standard Time"
 			}
 		}
