@@ -420,7 +420,7 @@
 							"type": "Expression"
 						}
 					},
-					"columnDelimiter": "Comma (,)",
+					"columnDelimiter": ",",
 					"escapeChar": "\\",
 					"firstRowAsHeader": true,
 					"quoteChar": "\""
@@ -642,6 +642,90 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/pl_ingest_bronze_master')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/df_transform_SCADA_Bronze_to_Silver')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_bronze_csv_dynamic",
+								"type": "DatasetReference"
+							},
+							"name": "BronzeSCADASource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_silver_scada_parquet",
+								"type": "DatasetReference"
+							},
+							"name": "SilverSink"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_quarantine_scada_csv",
+								"type": "DatasetReference"
+							},
+							"name": "QuarantineSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "CleanseAndStandardize"
+						},
+						{
+							"name": "QualityGate"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          SensorID as string,",
+						"          EquipmentID as string,",
+						"          Timestamp as string,",
+						"          Temperature as double,",
+						"          Pressure as double,",
+						"          SpeedRPM as short,",
+						"          Vibration as double",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     wildcardPaths:['bronze/scada/**/*.csv']) ~> BronzeSCADASource",
+						"BronzeSCADASource derive(Timestamp = toTimestamp(Timestamp, 'yyyy-MM-dd HH:mm'),",
+						"          Temperature = round((Temperature - 32) * 5/9, 2),",
+						"          Pressure = round(Pressure * 0.0689476, 2),",
+						"          LoadTimestamp = currentTimestamp()) ~> CleanseAndStandardize",
+						"CleanseAndStandardize split(Temperature <= 150 && Temperature >= 0 && !isNull(SensorID),",
+						"     disjoint: false) ~> QualityGate@(ValidData, QuarantineData)",
+						"QualityGate@ValidData sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SilverSink",
+						"QualityGate@QuarantineData sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> QuarantineSink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_bronze_csv_dynamic')]",
+				"[concat(variables('factoryId'), '/datasets/ds_silver_scada_parquet')]",
+				"[concat(variables('factoryId'), '/datasets/ds_quarantine_scada_csv')]"
 			]
 		}
 	]
