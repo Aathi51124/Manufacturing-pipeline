@@ -1,0 +1,23 @@
+{
+	"name": "ds_quarantine_scada_csv",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls_manufacturing",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "quarantine/scada",
+				"fileSystem": "manufacturing"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}
