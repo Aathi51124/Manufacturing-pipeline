@@ -8,6 +8,9 @@
 				"pipelineReference": {
 					"referenceName": "pl_ingest_bronze_master",
 					"type": "PipelineReference"
+				},
+				"parameters": {
+					"TriggerFrequency": "30Min"
 				}
 			}
 		],
