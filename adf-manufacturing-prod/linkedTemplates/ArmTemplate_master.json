@@ -31,13 +31,13 @@
 			"type": "string",
 			"defaultValue": "Daily"
 		},
-		"tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
-			"type": "string",
-			"defaultValue": "30Min"
-		},
 		"tr_Quality_Hourly_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
 			"type": "string",
 			"defaultValue": "Hourly"
+		},
+		"tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+			"type": "string",
+			"defaultValue": "30Min"
 		},
 		"containerUri": {
 			"type": "string",
@@ -84,11 +84,11 @@
 					"tr_Daily_1AM_Ingestion_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
 						"value": "[parameters('tr_Daily_1AM_Ingestion_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
 					},
-					"tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
-						"value": "[parameters('tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
-					},
 					"tr_Quality_Hourly_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
 						"value": "[parameters('tr_Quality_Hourly_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
+					},
+					"tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+						"value": "[parameters('tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
 					}
 				}
 			},

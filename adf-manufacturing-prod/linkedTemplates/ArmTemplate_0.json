@@ -31,13 +31,13 @@
 			"type": "string",
 			"defaultValue": "Daily"
 		},
-		"tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
-			"type": "string",
-			"defaultValue": "30Min"
-		},
 		"tr_Quality_Hourly_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
 			"type": "string",
 			"defaultValue": "Hourly"
+		},
+		"tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+			"type": "string",
+			"defaultValue": "30Min"
 		}
 	},
 	"variables": {
@@ -106,6 +106,61 @@
 					"escapeChar": "\\",
 					"firstRowAsHeader": true,
 					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_manufacturing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_quarantine_scada_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls_manufacturing",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "scada",
+						"folderPath": "quarantine",
+						"fileSystem": "manufacturing"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls_manufacturing')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_silver_scada_parquet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls_manufacturing",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "scada",
+						"folderPath": "silver",
+						"fileSystem": "manufacturing"
+					},
+					"compressionCodec": "snappy"
 				},
 				"schema": []
 			},
@@ -247,6 +302,55 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/df_transform_SCADA_Bronze_to_Silver')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "ds_bronze_csv_dynamic",
+								"type": "DatasetReference"
+							},
+							"name": "BronzeSCADASource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "ds_silver_scada_parquet",
+								"type": "DatasetReference"
+							},
+							"name": "SilverSink"
+						},
+						{
+							"dataset": {
+								"referenceName": "ds_quarantine_scada_csv",
+								"type": "DatasetReference"
+							},
+							"name": "QuarantineSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "CleanseAndStandardize"
+						},
+						{
+							"name": "QualityGate"
+						}
+					],
+					"script": "source(output(\n\t\tSensorID as string,\n\t\tEquipmentID as string,\n\t\tTimestamp as timestamp,\n\t\tTemperature as double,\n\t\tPressure as double,\n\t\tSpeedRPM as short,\n\t\tVibration as double\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\twildcardPaths:['bronze/scada/**/*.csv']) ~> BronzeSCADASource\nBronzeSCADASource derive(SourceTimestamp = toUTC(Timestamp),\n\t\tTemperature = round((Temperature - 32) * 5/9, 2),\n\t\tPressure = round(Pressure * 0.0689476, 2)) ~> CleanseAndStandardize\nCleanseAndStandardize split(Temperature <= 200 && !isNull(SensorID),\n\tdisjoint: false) ~> QualityGate@(ValidData, BadData)\nQualityGate@ValidData sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SilverSink\nQualityGate@BadData sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> QuarantineSink"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_bronze_csv_dynamic')]",
+				"[concat(variables('factoryId'), '/datasets/ds_silver_scada_parquet')]",
+				"[concat(variables('factoryId'), '/datasets/ds_quarantine_scada_csv')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_ingest_bronze_master')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -267,7 +371,10 @@
 						"typeProperties": {
 							"source": {
 								"type": "SqlDWSource",
-								"sqlReaderQuery": "@concat('SELECT * FROM dbo.PipelineConfig WHERE Frequency = ''', pipeline().parameters.TriggerFrequency, ''' AND IsActive = 1')",
+								"sqlReaderQuery": {
+									"value": "@concat('SELECT * FROM dbo.PipelineConfig WHERE Frequency = ''', pipeline().parameters.TriggerFrequency, ''' AND IsActive = 1')",
+									"type": "Expression"
+								},
 								"queryTimeout": "02:00:00",
 								"partitionOption": "None"
 							},
@@ -490,7 +597,7 @@
 				"annotations": [
 					"Supports daily audit and compliance ingestion"
 				],
-				"runtimeState": "Started",
+				"runtimeState": "Stopped",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -525,44 +632,12 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/tr_SCADA_Sensor_30Min')]",
-			"type": "Microsoft.DataFactory/factories/triggers",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"annotations": [],
-				"runtimeState": "Started",
-				"pipelines": [
-					{
-						"pipelineReference": {
-							"referenceName": "pl_ingest_bronze_master",
-							"type": "PipelineReference"
-						},
-						"parameters": {
-							"TriggerFrequency": "[parameters('tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
-						}
-					}
-				],
-				"type": "ScheduleTrigger",
-				"typeProperties": {
-					"recurrence": {
-						"frequency": "Minute",
-						"interval": 30,
-						"startTime": "2026-04-09T10:25:00",
-						"timeZone": "India Standard Time"
-					}
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/pipelines/pl_ingest_bronze_master')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/tr_Quality_Hourly')]",
 			"type": "Microsoft.DataFactory/factories/triggers",
 			"apiVersion": "2018-06-01",
 			"properties": {
 				"annotations": [],
-				"runtimeState": "Started",
+				"runtimeState": "Stopped",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -580,6 +655,38 @@
 						"frequency": "Hour",
 						"interval": 1,
 						"startTime": "2026-04-10T10:30:00",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_bronze_master')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/tr_SCADA_Sensor_30Min')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_ingest_bronze_master",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"TriggerFrequency": "[parameters('tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 30,
+						"startTime": "2026-04-09T10:25:00",
 						"timeZone": "India Standard Time"
 					}
 				}
