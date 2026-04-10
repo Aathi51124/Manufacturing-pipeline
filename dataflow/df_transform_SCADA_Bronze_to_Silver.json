@@ -1,0 +1,28 @@
+{
+	"name": "df_transform_SCADA_Bronze_to_Silver",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_csv_dynamic",
+						"type": "DatasetReference"
+					},
+					"name": "BronzeSCADASource"
+				}
+			],
+			"sinks": [],
+			"transformations": [],
+			"scriptLines": [
+				"source(output(",
+				"          {SensorID,EquipmentID,Timestamp,Temperature,Pressure,SpeedRPM,Vibration} as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     wildcardPaths:['bronze/scada/**/*.csv']) ~> BronzeSCADASource"
+			]
+		}
+	}
+}
