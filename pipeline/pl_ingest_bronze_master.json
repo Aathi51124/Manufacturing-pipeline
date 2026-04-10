@@ -17,6 +17,7 @@
 				"typeProperties": {
 					"source": {
 						"type": "SqlDWSource",
+						"sqlReaderQuery": "@concat('SELECT * FROM dbo.PipelineConfig WHERE Frequency = ''', pipeline().parameters.TriggerFrequency, ''' AND IsActive = 1')",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
@@ -214,6 +215,11 @@
 			}
 		],
 		"concurrency": 2,
+		"parameters": {
+			"TriggerFrequency": {
+				"type": "string"
+			}
+		},
 		"annotations": []
 	}
 }
