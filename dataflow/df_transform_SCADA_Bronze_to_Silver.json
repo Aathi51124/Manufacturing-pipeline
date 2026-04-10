@@ -12,16 +12,65 @@
 					"name": "BronzeSCADASource"
 				}
 			],
-			"sinks": [],
-			"transformations": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_scada_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "SilverSink"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_quarantine_scada_csv",
+						"type": "DatasetReference"
+					},
+					"name": "QuarantineSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CleanseAndStandardize"
+				},
+				{
+					"name": "QualityGate"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
-				"          {SensorID,EquipmentID,Timestamp,Temperature,Pressure,SpeedRPM,Vibration} as string",
+				"          SensorID as string,",
+				"          EquipmentID as string,",
+				"          Timestamp as string,",
+				"          Temperature as double,",
+				"          Pressure as double,",
+				"          SpeedRPM as short,",
+				"          Vibration as double",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false,",
-				"     wildcardPaths:['bronze/scada/**/*.csv']) ~> BronzeSCADASource"
+				"     wildcardPaths:['bronze/scada/**/*.csv']) ~> BronzeSCADASource",
+				"BronzeSCADASource derive(Timestamp = toTimestamp(Timestamp, 'yyyy-MM-dd HH:mm'),",
+				"          Temperature = round((Temperature - 32) * 5/9, 2),",
+				"          Pressure = round(Pressure * 0.0689476, 2),",
+				"          LoadTimestamp = currentTimestamp()) ~> CleanseAndStandardize",
+				"CleanseAndStandardize split(Temperature <= 150 && Temperature >= 0 && !isNull(SensorID),",
+				"     disjoint: false) ~> QualityGate@(ValidData, QuarantineData)",
+				"QualityGate@ValidData sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SilverSink",
+				"QualityGate@QuarantineData sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> QuarantineSink"
 			]
 		}
 	}
