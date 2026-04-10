@@ -19,6 +19,15 @@
 		},
 		"ls_sql_manufacturing_properties_typeProperties_userName": {
 			"value": "roott"
+		},
+		"tr_Daily_1AM_Ingestion_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+			"value": "Daily"
+		},
+		"tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+			"value": "30Min"
+		},
+		"tr_Quality_Hourly_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+			"value": "Hourly"
 		}
 	}
 }

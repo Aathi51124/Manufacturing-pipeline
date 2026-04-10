@@ -26,6 +26,18 @@
 		"ls_sql_manufacturing_properties_typeProperties_userName": {
 			"type": "string",
 			"defaultValue": "roott"
+		},
+		"tr_Daily_1AM_Ingestion_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+			"type": "string",
+			"defaultValue": "Daily"
+		},
+		"tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+			"type": "string",
+			"defaultValue": "30Min"
+		},
+		"tr_Quality_Hourly_properties_pl_ingest_bronze_master_parameters_TriggerFrequency": {
+			"type": "string",
+			"defaultValue": "Hourly"
 		}
 	},
 	"variables": {
@@ -53,6 +65,7 @@
 						"typeProperties": {
 							"source": {
 								"type": "SqlDWSource",
+								"sqlReaderQuery": "@concat('SELECT * FROM dbo.PipelineConfig WHERE Frequency = ''', pipeline().parameters.TriggerFrequency, ''' AND IsActive = 1')",
 								"queryTimeout": "02:00:00",
 								"partitionOption": "None"
 							},
@@ -250,8 +263,14 @@
 						}
 					}
 				],
+				"concurrency": 2,
 				"policy": {
 					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"TriggerFrequency": {
+						"type": "string"
+					}
 				},
 				"annotations": []
 			},
@@ -461,6 +480,112 @@
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/ls_key_vault')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/tr_Daily_1AM_Ingestion')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [
+					"Supports daily audit and compliance ingestion"
+				],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_ingest_bronze_master",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"TriggerFrequency": "[parameters('tr_Daily_1AM_Ingestion_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Day",
+						"interval": 1,
+						"startTime": "2026-04-10T04:25:00",
+						"timeZone": "India Standard Time",
+						"schedule": {
+							"minutes": [
+								0
+							],
+							"hours": [
+								1
+							]
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_bronze_master')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/tr_SCADA_Sensor_30Min')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_ingest_bronze_master",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"TriggerFrequency": "[parameters('tr_SCADA_Sensor_30Min_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Minute",
+						"interval": 30,
+						"startTime": "2026-04-09T10:10:00",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_bronze_master')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/tr_Quality_Hourly')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_ingest_bronze_master",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"TriggerFrequency": "[parameters('tr_Quality_Hourly_properties_pl_ingest_bronze_master_parameters_TriggerFrequency')]"
+						}
+					}
+				],
+				"type": "ScheduleTrigger",
+				"typeProperties": {
+					"recurrence": {
+						"frequency": "Hour",
+						"interval": 1,
+						"startTime": "2026-04-10T04:30:00",
+						"timeZone": "India Standard Time"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/pl_ingest_bronze_master')]"
 			]
 		}
 	]
