@@ -1,0 +1,42 @@
+{
+	"name": "df_transform_SCADA_Bronze_to_Silver",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_csv_dynamic",
+						"type": "DatasetReference"
+					},
+					"name": "BronzeSCADASource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_scada_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "SilverSink"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_quarantine_scada_csv",
+						"type": "DatasetReference"
+					},
+					"name": "QuarantineSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CleanseAndStandardize"
+				},
+				{
+					"name": "QualityGate"
+				}
+			],
+			"script": "source(output(\n\t\tSensorID as string,\n\t\tEquipmentID as string,\n\t\tTimestamp as timestamp,\n\t\tTemperature as double,\n\t\tPressure as double,\n\t\tSpeedRPM as short,\n\t\tVibration as double\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tignoreNoFilesFound: false,\n\twildcardPaths:['bronze/scada/**/*.csv']) ~> BronzeSCADASource\nBronzeSCADASource derive(SourceTimestamp = toUTC(Timestamp),\n\t\tTemperature = round((Temperature - 32) * 5/9, 2),\n\t\tPressure = round(Pressure * 0.0689476, 2)) ~> CleanseAndStandardize\nCleanseAndStandardize split(Temperature <= 200 && !isNull(SensorID),\n\tdisjoint: false) ~> QualityGate@(ValidData, BadData)\nQualityGate@ValidData sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tformat: 'parquet',\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> SilverSink\nQualityGate@BadData sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tumask: 0022,\n\tpreCommands: [],\n\tpostCommands: [],\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> QuarantineSink"
+		}
+	}
+}
